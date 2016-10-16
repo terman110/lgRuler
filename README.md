@@ -1,0 +1,1 @@
+A simple display ruler for software developers and designers written in C# for .Net 4.0 an newer.
