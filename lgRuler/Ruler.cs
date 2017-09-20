@@ -9,6 +9,8 @@ namespace lg.win.ruler
     {
         private static int MaxRulerIndex = 0;   // Running number of rulers created
 
+        private PositionTip m_objTip = null;
+
         #region Delegates
         public delegate void CloseRulerHandler(Ruler sender);
         public event CloseRulerHandler CloseRuler;
@@ -62,94 +64,128 @@ namespace lg.win.ruler
 
             g.Clear(BackColor);
 
-            Rectangle rLeft = r;    // Area left for size label
+            // Area left for size label
+            Rectangle rLeft = r;
 
             // Draw x-axis
-            {
-                string strLabel;
-                SizeF sizeLabel;
-                Rectangle rectLabel;
-                int lastLabelPos = 0;
-                for (int major = 0; major <= r.Width; major += Settings.RulerMajorTickInterval)
-                {
-                    g.DrawLine(penMajorTick, major, 0, major, Settings.RulerMajorTickSize);
-                    if (rLeft.Y < Settings.RulerMajorTickSize)
-                        rLeft.Y = Settings.RulerMajorTickSize;
-
-                    strLabel = major.ToString();
-                    sizeLabel = g.MeasureString(strLabel, Settings.RulerLabelFont);
-                    rectLabel = new Rectangle(major - (int)Math.Ceiling(sizeLabel.Width) / 2, Settings.RulerMajorTickSize + Settings.RulerLabelPadding, (int)Math.Ceiling(sizeLabel.Width), (int)Math.Ceiling(sizeLabel.Height));
-                    if (rectLabel.Left >= lastLabelPos + Settings.RulerLabelPadding && rectLabel.Right <= r.Width - Settings.RulerLabelPadding &&
-                        rectLabel.Top >= Settings.RulerLabelPadding && rectLabel.Bottom <= r.Height - Settings.RulerLabelPadding)
-                    {
-                        g.DrawString(strLabel, Settings.RulerLabelFont, brushLabel, rectLabel);
-                        lastLabelPos = rectLabel.Right;
-                        if (rLeft.Y < rectLabel.Bottom)
-                            rLeft.Y = rectLabel.Bottom;
-                    }
-
-                    for (int minor = 0; minor < Settings.RulerMajorTickInterval; minor += Settings.RulerMinorTickInterval)
-                        g.DrawLine(penMajorTick, major + minor, 0, major + minor, Settings.RulerMinorTickSize);
-                }
-            }
+            DrawXAxis(g, r, ref rLeft);
 
             // Draw y-label
-            {
-                string strLabel;
-                SizeF sizeLabel;
-                Rectangle rectLabel;
-                int lastLabelPos = 0;
-                for (int major = 0; major <= r.Height; major += Settings.RulerMajorTickInterval)
-                {
-                    if (major > Settings.RulerMajorTickSize + Settings.RulerLabelPadding)
-                    {
-                        g.DrawLine(penMajorTick, 0, major, Settings.RulerMajorTickSize, major);
-                        if (rLeft.X < Settings.RulerMajorTickSize)
-                            rLeft.X = Settings.RulerMajorTickSize;
-
-                        strLabel = major.ToString();
-                        sizeLabel = g.MeasureString(strLabel, Settings.RulerLabelFont);
-                        rectLabel = new Rectangle(Settings.RulerMajorTickSize + Settings.RulerLabelPadding, major - (int)Math.Ceiling(sizeLabel.Height) / 2, (int)Math.Ceiling(sizeLabel.Width), (int)Math.Ceiling(sizeLabel.Height));
-                        if (rectLabel.Left >= Settings.RulerLabelPadding && rectLabel.Right <= r.Width - Settings.RulerLabelPadding &&
-                            rectLabel.Top >= lastLabelPos + Settings.RulerLabelPadding && rectLabel.Bottom <= r.Height - Settings.RulerLabelPadding)
-                        {
-                            g.DrawString(strLabel, Settings.RulerLabelFont, brushLabel, rectLabel);
-                            lastLabelPos = rectLabel.Top;
-                            if (rLeft.X < rectLabel.Right)
-                                rLeft.X = rectLabel.Right;
-                        }
-                    }
-
-                    for (int minor = 0; minor < Settings.RulerMajorTickInterval; minor += Settings.RulerMinorTickInterval)
-                        if (major + minor > Settings.RulerMajorTickSize + Settings.RulerLabelPadding)
-                            g.DrawLine(penMajorTick, 0, major + minor, Settings.RulerMinorTickSize, major + minor);
-                }
-            }
+            DrawYAxis(g, r, ref rLeft);
 
             // Draw size label
+            DrawLabel(g, rLeft);
+        }
+
+        private void DrawLabel(Graphics g, Rectangle rLeft)
+        {
+            string strLabel = Width.ToString() + "px x " + Height.ToString() + "px";
+            SizeF sizeLabel = g.MeasureString(strLabel, Settings.RulerLabelFont);
+            Rectangle rectLabel = new Rectangle(0, 0, (int)Math.Ceiling(sizeLabel.Width) + Settings.RulerMajorTickSize + 3, (int)Math.Ceiling(sizeLabel.Height) + Settings.RulerMajorTickSize);
+            rectLabel.X = Width - rectLabel.Width - Settings.RulerLabelPadding;
+            rectLabel.Y = Height - rectLabel.Height - Settings.RulerLabelPadding;
+            if (rLeft.Contains(rectLabel))
             {
-                string strLabel = Width.ToString() + "px x " + Height.ToString() + "px";
-                SizeF sizeLabel = g.MeasureString(strLabel, Settings.RulerLabelFont);
-                Rectangle rectLabel = new Rectangle(0, 0, (int)Math.Ceiling(sizeLabel.Width), (int)Math.Ceiling(sizeLabel.Height));
-                rectLabel.X = Width - rectLabel.Width - Settings.RulerLabelPadding;
-                rectLabel.Y = Height - rectLabel.Height - Settings.RulerLabelPadding;
-                if (rLeft.Contains(rectLabel))
+                g.DrawString(strLabel, Settings.RulerLabelFont, brushLabel, rectLabel);
+                if (m_objTip != null) m_objTip.Hide();
+            }
+            else
+            {
+                string strCompactLabel = Width.ToString() + "px" + Environment.NewLine + Height.ToString() + "px";
+                SizeF sizeCompactLabel = g.MeasureString(strCompactLabel, Settings.RulerLabelFont);
+                Rectangle rectCompactLabel = new Rectangle(0, 0, (int)Math.Ceiling(sizeCompactLabel.Width + Settings.RulerMajorTickSize + 3), (int)Math.Ceiling(sizeCompactLabel.Height + Settings.RulerMajorTickSize));
+                rectCompactLabel.X = Width - rectCompactLabel.Width - Settings.RulerLabelPadding;
+                rectCompactLabel.Y = Height - rectCompactLabel.Height - Settings.RulerLabelPadding;
+                if (rLeft.Contains(rectCompactLabel))
                 {
-                    g.DrawString(strLabel, Settings.RulerLabelFont, brushLabel, rectLabel);
+                    g.DrawString(strCompactLabel, Settings.RulerLabelFont, brushLabel, rectCompactLabel);
+                    if (m_objTip != null) m_objTip.Hide();
                 }
                 else
                 {
-                    strLabel = Width.ToString() + "px" + Environment.NewLine + Height.ToString() + "px";
-                    sizeLabel = g.MeasureString(strLabel, Settings.RulerLabelFont);
-                    rectLabel = new Rectangle(0, 0, (int)Math.Ceiling(sizeLabel.Width), (int)Math.Ceiling(sizeLabel.Height));
-                    rectLabel.X = Width - rectLabel.Width - Settings.RulerLabelPadding;
-                    rectLabel.Y = Height - rectLabel.Height - Settings.RulerLabelPadding;
-                    if (rLeft.Contains(rectLabel))
-                    {
-                        g.DrawString(strLabel, Settings.RulerLabelFont, brushLabel, rectLabel);
-                    }
+                    ShowLabelTip(strLabel);
                 }
             }
+        }
+
+        private void ShowLabelTip(string strLabel)
+        {
+            if (m_objTip == null)
+                m_objTip = new PositionTip();
+            m_objTip.Text = strLabel;
+            m_objTip.TopMost = TopMost;
+            m_objTip.BackColor = BackColor;
+            if (!m_objTip.Visible)
+                m_objTip.Show(this);
+        }
+
+        private static void DrawYAxis(Graphics g, Rectangle r, ref Rectangle rLeft)
+        {
+            string strLabel;
+            SizeF sizeLabel;
+            Rectangle rectLabel;
+            int lastLabelPos = 0;
+            for (int major = 0; major <= r.Height; major += Settings.RulerMajorTickInterval)
+            {
+                if (major > Settings.RulerMajorTickSize + Settings.RulerLabelPadding)
+                {
+                    g.DrawLine(penMajorTick, 0, major, Settings.RulerMajorTickSize, major);
+                    if (rLeft.X < Settings.RulerMajorTickSize)
+                        rLeft.X = Settings.RulerMajorTickSize;
+
+                    strLabel = major.ToString();
+                    sizeLabel = g.MeasureString(strLabel, Settings.RulerLabelFont);
+                    rectLabel = new Rectangle(Settings.RulerMajorTickSize + Settings.RulerLabelPadding, major - (int)Math.Ceiling(sizeLabel.Height) / 2, (int)Math.Ceiling(sizeLabel.Width), (int)Math.Ceiling(sizeLabel.Height));
+                    if (rectLabel.Left >= Settings.RulerLabelPadding && rectLabel.Right <= r.Width - Settings.RulerLabelPadding &&
+                        rectLabel.Top >= lastLabelPos + Settings.RulerLabelPadding && rectLabel.Bottom <= r.Height - Settings.RulerLabelPadding)
+                    {
+                        g.DrawString(strLabel, Settings.RulerLabelFont, brushLabel, rectLabel);
+                        lastLabelPos = rectLabel.Top;
+                        if (rLeft.X < rectLabel.Right)
+                            rLeft.X = rectLabel.Right;
+                    }
+                }
+
+                for (int minor = 0; minor < Settings.RulerMajorTickInterval; minor += Settings.RulerMinorTickInterval)
+                    if (major + minor > Settings.RulerMajorTickSize + Settings.RulerLabelPadding)
+                        g.DrawLine(penMajorTick, 0, major + minor, Settings.RulerMinorTickSize, major + minor);
+            }
+        }
+
+        private static void DrawXAxis(Graphics g, Rectangle r, ref Rectangle rLeft)
+        {
+            string strLabel;
+            SizeF sizeLabel;
+            Rectangle rectLabel;
+            int lastLabelPos = 0;
+            for (int major = 0; major <= r.Width; major += Settings.RulerMajorTickInterval)
+            {
+                g.DrawLine(penMajorTick, major, 0, major, Settings.RulerMajorTickSize);
+                if (rLeft.Y < Settings.RulerMajorTickSize)
+                    rLeft.Y = Settings.RulerMajorTickSize;
+
+                strLabel = major.ToString();
+                sizeLabel = g.MeasureString(strLabel, Settings.RulerLabelFont);
+                rectLabel = new Rectangle(major - (int)Math.Ceiling(sizeLabel.Width) / 2, Settings.RulerMajorTickSize + Settings.RulerLabelPadding, (int)Math.Ceiling(sizeLabel.Width), (int)Math.Ceiling(sizeLabel.Height));
+                if (rectLabel.Left >= lastLabelPos + Settings.RulerLabelPadding && rectLabel.Right <= r.Width - Settings.RulerLabelPadding &&
+                    rectLabel.Top >= Settings.RulerLabelPadding && rectLabel.Bottom <= r.Height - Settings.RulerLabelPadding)
+                {
+                    g.DrawString(strLabel, Settings.RulerLabelFont, brushLabel, rectLabel);
+                    lastLabelPos = rectLabel.Right;
+                    if (rLeft.Y < rectLabel.Bottom)
+                        rLeft.Y = rectLabel.Bottom;
+                }
+
+                for (int minor = 0; minor < Settings.RulerMajorTickInterval; minor += Settings.RulerMinorTickInterval)
+                    g.DrawLine(penMajorTick, major + minor, 0, major + minor, Settings.RulerMinorTickSize);
+            }
+        }
+
+        private void Ruler_Move(object sender, EventArgs e)
+        {
+            if (m_objTip != null)
+                m_objTip.Location = new Point(this.Location.X + this.Width + 3, this.Location.Y);
+            Invalidate();
         }
         #endregion
 
@@ -309,12 +345,21 @@ namespace lg.win.ruler
             dlg.ShowDialog(this);
             Refresh();
         }
+
+        private void Ruler_Shown(object sender, EventArgs e)
+        {
+            if (m_objTip != null)
+                m_objTip.Hide();
+            Refresh();
+        }
         #endregion
 
         #region Closing
         private void toolStripMenuItem1_Click(object sender, EventArgs e)
         {
             TopMost = ((ToolStripMenuItem)sender).Checked;
+            if (m_objTip != null)
+                m_objTip.TopMost = TopMost;
             if (StayOnTopChanged != null)
                 StayOnTopChanged(this, TopMost);
         }

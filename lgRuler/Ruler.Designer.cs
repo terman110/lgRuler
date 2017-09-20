@@ -13,6 +13,11 @@
         /// <param name="disposing">true if managed resources should be disposed; otherwise, false.</param>
         protected override void Dispose(bool disposing)
         {
+            if(m_objTip != null)
+            {
+                m_objTip.Dispose();
+                m_objTip = null;
+            }
             if (disposing && (components != null))
             {
                 components.Dispose();
@@ -40,6 +45,7 @@
             this.toolStripMenuItem1 = new System.Windows.Forms.ToolStripMenuItem();
             this.toolStripSeparator1 = new System.Windows.Forms.ToolStripSeparator();
             this.closeToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.PosToolTip = new System.Windows.Forms.ToolTip(this.components);
             this.MenuStrip.SuspendLayout();
             this.SuspendLayout();
             // 
@@ -124,22 +130,25 @@
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.BackColor = System.Drawing.Color.Maroon;
-            this.ClientSize = new System.Drawing.Size(219, 38);
+            this.ClientSize = new System.Drawing.Size(250, 44);
             this.ControlBox = false;
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.None;
             this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
             this.MaximizeBox = false;
             this.MinimizeBox = false;
-            this.MinimumSize = new System.Drawing.Size(38, 38);
+            this.MinimumSize = new System.Drawing.Size(2, 2);
             this.Name = "Ruler";
             this.Padding = new System.Windows.Forms.Padding(5);
             this.ShowInTaskbar = false;
             this.Text = "Ruler";
+            this.Shown += new System.EventHandler(this.Ruler_Shown);
             this.Paint += new System.Windows.Forms.PaintEventHandler(this.Ruler_Paint);
             this.MouseClick += new System.Windows.Forms.MouseEventHandler(this.Ruler_MouseClick);
             this.MouseDown += new System.Windows.Forms.MouseEventHandler(this.Ruler_MouseDown);
             this.MouseMove += new System.Windows.Forms.MouseEventHandler(this.Ruler_MouseMove);
             this.MouseUp += new System.Windows.Forms.MouseEventHandler(this.Ruler_MouseUp);
+            this.Move += new System.EventHandler(this.Ruler_Move);
+            this.Resize += new System.EventHandler(this.Ruler_Move);
             this.MenuStrip.ResumeLayout(false);
             this.ResumeLayout(false);
 
@@ -157,5 +166,6 @@
         private System.Windows.Forms.ToolStripMenuItem locationItem;
         private System.Windows.Forms.ToolStripMenuItem screenItem;
         private System.Windows.Forms.ToolStripMenuItem setSizeItem;
+        private System.Windows.Forms.ToolTip PosToolTip;
     }
 }
